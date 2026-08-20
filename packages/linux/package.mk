@@ -36,6 +36,15 @@ case "${LINUX}" in
     PKG_SOURCE_NAME="linux-${LINUX}-${PKG_VERSION}.tar.gz"
     PKG_PATCH_DIRS="default rockchip"
     ;;
+  spacemit)
+    # SpacemiT K1 vendor BSP kernel 6.6 (k1-bl-v2.2.y)
+    PKG_VERSION="21f2edd50954020f22954d3be8b9202120ae1ae4"
+    PKG_URL="https://github.com/spacemit-com/linux-6.6/archive/${PKG_VERSION}.tar.gz"
+    PKG_SOURCE_NAME="linux-${LINUX}-${PKG_VERSION}.tar.gz"
+    # No shared kernel patches: the default/ set is mainline-oriented (e.g. the
+    # i915 10-bit hack) and does not apply to the vendor 6.6 tree.
+    PKG_PATCH_DIRS=""
+    ;;
   *)
     PKG_VERSION="7.1.2"
     PKG_SHA256="37198c93727be247c9fb5309bb86cd5e496c61e5322cd8c4eca9476bb0b5883f"
@@ -247,6 +256,9 @@ make_target() {
           ;;
         aarch64)
           PERF_BUILD_ARGS="ARCH=arm64"
+          ;;
+        riscv64)
+          PERF_BUILD_ARGS="ARCH=riscv"
           ;;
         *)
           PERF_BUILD_ARGS="ARCH=${TARGET_ARCH}"
