@@ -1,0 +1,25 @@
+diff --git a/include/sbi/sbi_types.h b/include/sbi/sbi_types.h
+index 40078f3..0e20b9a 100644
+--- a/include/sbi/sbi_types.h
++++ b/include/sbi/sbi_types.h
+@@ -44,7 +44,11 @@
+ #error "Unexpected __riscv_xlen"
+ #endif
+ 
++#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 202311L
++#include <stdbool.h>
++#else
+ typedef int			bool;
++#endif
+ typedef unsigned long		ulong;
+ typedef unsigned long		uintptr_t;
+ typedef unsigned long		size_t;
+@@ -64,8 +68,10 @@ typedef uint64_t		le64_t;
+ typedef uint64_t		be64_t;
+ 
++#if defined(__STDC_VERSION__) && __STDC_VERSION__ < 202311L
+ #define true			1
+ #define false			0
++#endif
+ 
+ #define NULL			((void *)0)
