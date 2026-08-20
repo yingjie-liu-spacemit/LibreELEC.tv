@@ -1,0 +1,84 @@
+################################################################################
+# setup system defaults
+################################################################################
+
+  # Bootloader to use (syslinux / u-boot / bcm2835-bootloader)
+    BOOTLOADER="u-boot"
+
+  # U-Boot system/board name - single k1_defconfig build covers all K1 boards
+    UBOOT_SYSTEM="k1"
+
+  # Kernel to use. values can be:
+  # spacemit: SpacemiT vendor kernel 6.6 (k1-bl-v2.2.y)
+    LINUX="${LINUX:-spacemit}"
+
+  # Kernel image to build (riscv64: arch/riscv/boot/Image)
+    KERNEL_TARGET="Image"
+
+  # Additional kernel make parameters
+    KERNEL_MAKE_EXTRACMD="dtbs"
+
+################################################################################
+# setup build defaults
+################################################################################
+
+  # Project CFLAGS
+    PROJECT_CFLAGS=""
+
+  # SquashFS compression method (gzip / lzo / xz / zstd)
+    SQUASHFS_COMPRESSION="zstd"
+
+################################################################################
+# setup project defaults
+################################################################################
+
+  # OpenGL implementation to use (no / mesa)
+    OPENGL="no"
+
+  # OpenGL ES implementation to use (no / mesa)
+    OPENGLES="${OPENGLES:-mesa}"
+
+  # Vulkan implementation to use (vulkan-loader / no)
+    VULKAN="no"
+
+  # Displayserver to use (wl / no)
+    DISPLAYSERVER="no"
+
+  # Windowmanager to use (weston / no)
+    WINDOWMANAGER="no"
+
+  # Graphic drivers to use
+    GRAPHIC_DRIVERS=""
+
+  # KODI Player implementation to use (default / mesa)
+    KODIPLAYER_DRIVER="$OPENGLES"
+
+  # additional Firmware to use (kernel-firmware = full linux-firmware set incl. rtw89 wifi)
+    FIRMWARE="kernel-firmware"
+
+  # build with installer (yes / no)
+    INSTALLER_SUPPORT="no"
+
+  # Boot partition starts at 4MiB - boot chain (bootinfo/FSBL/env/OpenSBI/U-Boot)
+  # occupies the first 4MiB, matching the SpacemiT vendor SD layout
+    SYSTEM_PART_START=8192
+
+  # System partition size (MiB) - only used by the generic mkimage pre-flight
+  # sizing; the Spacemit bootloader/mkimage rebuilds the final GPT layout.
+    SYSTEM_SIZE=512
+
+  # additional packages to install
+    ADDITIONAL_PACKAGES+=" dtc img-gpu-powervr k1x-vpu-firmware mpp"
+
+  # PulseAudio crashes on RISC-V (NULL deref in libpulsecommon-17.0.so),
+  # disable it and use ALSA only for audio.
+    PULSEAUDIO_SUPPORT="no"
+    KODI_PULSEAUDIO_SUPPORT="no"
+
+  # RISC-V toolchain: no gold linker available (binutils riscv64 gold is not
+  # built/installed), so force the always-available bfd linker.
+    GOLD_SUPPORT="no"
+    DEFAULT_LINKER="bfd"
+
+  # debug tty path
+    DEBUG_TTY="/dev/ttyS0"

@@ -1,0 +1,130 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Team LibreELEC K1 port
+
+# SpacemiT K1 SD image builder.
+#
+# The K1 boot chain requires a GPT disk with named partitions consumed by the
+# vendor SPL/U-Boot (fsbl/env/opensbi/uboot) followed by the LibreELEC bootfs
+# (ext4, name "bootfs") and rootfs (name "rootfs") partitions:
+#
+#   0       : bootinfo (80 bytes, from bootinfo_sd.bin)
+#   128K    : FSBL.bin (SPL with AIHD header)
+#   384K    : u-boot-env-default.bin
+#   1M      : fw_dynamic.itb (OpenSBI)
+#   2M      : u-boot.itb (multi-dtb U-Boot FIT)
+#   4M      : bootfs (ext4) - KERNEL + dtbs + SYSTEM + env_k1-x.txt
+#   260M    : rootfs (ext4) - storage
+#
+# This script is sourced from scripts/mkimage (Spacemit branch) and runs with
+# ROOT/SCRIPTS/TARGET_IMG/IMAGE_NAME/RELEASE_DIR etc. exported.
+
+set -e
+
+echo "spacemit: building K1 SD image (GPT boot chain + bootfs + rootfs)..."
+
+BOOT_LOADER_DIR="${RELEASE_DIR}/3rdparty/bootloader"
+IMG_TMP_MNT=$(mktemp -d -p ${TARGET_IMG})
+
+BOOTINFO="${BOOT_LOADER_DIR}/bootinfo_sd.bin"
+FSBL="${BOOT_LOADER_DIR}/FSBL.bin"
+ENV_BIN="${BOOT_LOADER_DIR}/u-boot-env-default.bin"
+OPENSBI="${BOOT_LOADER_DIR}/fw_dynamic.itb"
+UBOOT="${BOOT_LOADER_DIR}/u-boot.itb"
+
+for f in "${BOOTINFO}" "${FSBL}" "${ENV_BIN}" "${OPENSBI}" "${UBOOT}"; do
+  if [ ! -f "${f}" ]; then
+    echo "spacemit: missing bootloader component ${f}"
+    exit 1
+  fi
+done
+
+BOOTFS_SIZE=256
+ROOTFS_SIZE=1024
+DISK="${TARGET_IMG}/${IMAGE_NAME}.img"
+
+# sizes in sectors
+BOOTFS_SECTORS=$((BOOTFS_SIZE * 1024 * 2))
+ROOTFS_SECTORS=$((ROOTFS_SIZE * 1024 * 2))
+DISK_SECTORS=$(( 260 * 1024 * 2 + BOOTFS_SECTORS + ROOTFS_SECTORS + 2048 ))
+
+echo "spacemit: creating sparse disk image ${DISK} (${DISK_SECTORS} sectors)..."
+dd if=/dev/zero of="${DISK}" bs=512 count=0 seek="${DISK_SECTORS}" conv=fsync
+
+# GPT partition table (names matter to the vendor boot chain)
+# The vendor SPL reads each stage from FIXED absolute offsets:
+#   bootinfo @ 0, FSBL @ 128K, env @ 384K, opensbi @ 1M, uboot @ 2M, bootfs @ 4M
+# These offsets MUST NOT change. sgdisk's default 2048-sector (1MiB) alignment
+# would refuse partitions below sector 2048, so pin --set-alignment=256 to keep
+# the partition table aligned with the fixed boot chain offsets.
+sgdisk -Z "${DISK}" >/dev/null 2>&1 || true
+sgdisk --set-alignment=256 -n 1:256:767   -c 1:fsbl     -t 1:8300 "${DISK}" >/dev/null   # 128K, 256K
+sgdisk --set-alignment=256 -n 2:768:895   -c 2:env      -t 2:8300 "${DISK}" >/dev/null   # 384K, 64K
+sgdisk --set-alignment=256 -n 3:2048:2815 -c 3:opensbi  -t 3:8300 "${DISK}" >/dev/null   # 1M, 384K
+sgdisk --set-alignment=256 -n 4:4096:8191 -c 4:uboot    -t 4:8300 "${DISK}" >/dev/null   # 2M, 2M
+sgdisk --set-alignment=256 -n 5:8192:$((8191 + BOOTFS_SECTORS)) -c 5:bootfs -t 5:8300 "${DISK}" >/dev/null
+sgdisk --set-alignment=256 -n 6:$((8192 + BOOTFS_SECTORS)):0 -c 6:rootfs -t 6:8300 "${DISK}" >/dev/null
+sync
+
+echo "spacemit: writing boot chain..."
+# bootinfo at sector 0 (first 80 bytes, do not touch the GPT protective MBR tail)
+dd if="${BOOTINFO}" of="${DISK}" bs=1 count=80 conv=notrunc
+# FSBL at 128K, env at 384K, opensbi at 1M, u-boot at 2M (vendor SPL fixed offsets)
+dd if="${FSBL}"    of="${DISK}" bs=512 seek=256  conv=notrunc
+dd if="${ENV_BIN}" of="${DISK}" bs=512 seek=768  conv=notrunc
+dd if="${OPENSBI}" of="${DISK}" bs=512 seek=2048 conv=notrunc
+dd if="${UBOOT}"   of="${DISK}" bs=512 seek=4096 conv=notrunc
+sync
+
+echo "spacemit: building bootfs (ext4)..."
+rm -rf "${IMG_TMP_MNT}/bootfs"
+mkdir -p "${IMG_TMP_MNT}/bootfs"
+
+# KERNEL -> Image, SYSTEM, md5 checksums, all K1 dtbs, env overlay
+cp -av "${TARGET_IMG}/${BUILD_NAME}.kernel" "${IMG_TMP_MNT}/bootfs/Image"
+cp -av "${TARGET_IMG}/${BUILD_NAME}.system" "${IMG_TMP_MNT}/bootfs/SYSTEM"
+cp -av "${RELEASE_DIR}/target/KERNEL.md5" "${IMG_TMP_MNT}/bootfs/KERNEL.md5"
+cp -av "${RELEASE_DIR}/target/SYSTEM.md5" "${IMG_TMP_MNT}/bootfs/SYSTEM.md5"
+cp -av "${RELEASE_DIR}/3rdparty/bootloader/env_k1-x.txt" "${IMG_TMP_MNT}/bootfs/"
+
+if [ -d "${RELEASE_DIR}/3rdparty/bootloader/dtb" ]; then
+  cp -av ${RELEASE_DIR}/3rdparty/bootloader/dtb/*.dtb "${IMG_TMP_MNT}/bootfs/"
+elif ls ${RELEASE_DIR}/3rdparty/bootloader/*.dtb >/dev/null 2>&1; then
+  cp -av ${RELEASE_DIR}/3rdparty/bootloader/*.dtb "${IMG_TMP_MNT}/bootfs/"
+else
+  echo "spacemit: WARNING - no dtbs found in bootloader release dir"
+fi
+
+# bootfs ext4 image
+BOOTFS_IMG="${IMG_TMP_MNT}/bootfs.ext4"
+mke2fs -F -q -t ext4 -L LIBREELEC -m 0 -d "${IMG_TMP_MNT}/bootfs" "${BOOTFS_IMG}" ${BOOTFS_SIZE}M
+tune2fs -L LIBREELEC "${BOOTFS_IMG}" >/dev/null 2>&1 || true
+e2fsck -n "${BOOTFS_IMG}" >/dev/null 2>&1 || true
+dd if="${BOOTFS_IMG}" of="${DISK}" bs=512 seek=8192 conv=notrunc
+sync
+
+echo "spacemit: building rootfs (storage, ext4)..."
+rm -rf "${IMG_TMP_MNT}/rootfs"
+mkdir -p "${IMG_TMP_MNT}/rootfs"
+# Note: .please_resize_me is not created because the fs-resize script
+# expects partition number 2 (/dev/mmcblkXp2), but the K1 GPT layout
+# uses partition 6 for rootfs. The rootfs is already sized to
+# ROOTFS_SIZE in this mkimage script, so auto-resize is not needed.
+ROOTFS_IMG="${IMG_TMP_MNT}/rootfs.ext4"
+mke2fs -F -q -t ext4 -L STORAGE -m 0 -d "${IMG_TMP_MNT}/rootfs" "${ROOTFS_IMG}" ${ROOTFS_SIZE}M
+e2fsck -n "${ROOTFS_IMG}" >/dev/null 2>&1 || true
+dd if="${ROOTFS_IMG}" of="${DISK}" bs=512 seek=$((8192 + BOOTFS_SECTORS)) conv=notrunc
+sync
+
+rm -rf "${IMG_TMP_MNT}"
+echo "spacemit: K1 image ${DISK} ready"
+
+# compress and finish - the common mkimage flow (part1.fat fsck/merge) does not
+# apply to the custom K1 layout, so terminate the sourced script here.
+echo "image: compressing..."
+pigz --best --force "${DISK}"
+(
+  cd "${TARGET_IMG}"
+  sha256sum "${DISK##*/}.gz" >"${DISK##*/}.gz.sha256"
+)
+echo "spacemit: done"
+exit 0

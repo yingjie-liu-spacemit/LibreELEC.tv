@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Team LibreELEC K1 port
+
+# Stage the K1 boot chain + dtbs into the release dir used by bootloader/mkimage
+
+SRCDIR="${BUILD}/image/system/usr/share/bootloader"
+DSTDIR="${RELEASE_DIR}/3rdparty/bootloader"
+
+mkdir -p "${DSTDIR}"
+
+for f in bootinfo_sd.bin FSBL.bin u-boot-env-default.bin fw_dynamic.itb u-boot.itb env_k1-x.txt; do
+  if [ -f "${SRCDIR}/${f}" ]; then
+    cp -av "${SRCDIR}/${f}" "${DSTDIR}"
+  else
+    echo "release: bootloader component ${f} missing"
+    exit 1
+  fi
+done
+
+mkdir -p "${DSTDIR}/dtb"
+cp -av ${SRCDIR}/*.dtb "${DSTDIR}/dtb/"
