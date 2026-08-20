@@ -95,6 +95,13 @@ if [ "${DISPLAYSERVER}" != "x11" ]; then
   PKG_FFMPEG_VAAPI=" --enable-libdrm"
 fi
 
+# Spacemit K1 hardware video codec (stcodec / MPP)
+if [ "${PROJECT}" = "Spacemit" ]; then
+  PKG_DEPENDS_TARGET+=" mpp"
+  PKG_NEED_UNPACK+=" $(get_pkg_directory mpp)"
+  PKG_FFMPEG_STCODEC="--enable-stcodec --extra-libs=-lspacemit_mpp"
+fi
+
 if build_with_debug; then
   PKG_FFMPEG_DEBUG="--enable-debug --disable-stripping"
 else
@@ -182,6 +189,7 @@ configure_target() {
               ${PKG_FFMPEG_VAAPI} \
               --disable-vdpau \
               ${PKG_FFMPEG_RPI} \
+              ${PKG_FFMPEG_STCODEC} \
               --enable-runtime-cpudetect \
               --disable-hardcoded-tables \
               --disable-encoders \
