@@ -240,8 +240,10 @@ EOF
 
 elif [ "${BOOTLOADER}" = "u-boot" -a "${PROJECT}" = "Spacemit" ]; then
   # SpacemiT K1: fully custom image layout (GPT boot chain + ext4 bootfs).
-  # The project bootloader/mkimage rebuilds the disk image from scratch.
-  if [ -f "${PROJECT_DIR}/${PROJECT}/bootloader/mkimage" ]; then
+  # The device bootloader/mkimage rebuilds the disk image from scratch.
+  if [ -f "${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/bootloader/mkimage" ]; then
+    . "${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/bootloader/mkimage"
+  elif [ -f "${PROJECT_DIR}/${PROJECT}/bootloader/mkimage" ]; then
     . "${PROJECT_DIR}/${PROJECT}/bootloader/mkimage"
   fi
 

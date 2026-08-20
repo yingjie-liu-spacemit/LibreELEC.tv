@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
-# Copyright (C) 2026 Team LibreELEC K1 port
+# Copyright (C) 2026-present Team LibreELEC (https://libreelec.tv)
 
 # Stage the K1 boot chain + dtbs into the release dir used by bootloader/mkimage
 

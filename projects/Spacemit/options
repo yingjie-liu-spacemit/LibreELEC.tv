@@ -5,19 +5,6 @@
   # Bootloader to use (syslinux / u-boot / bcm2835-bootloader)
     BOOTLOADER="u-boot"
 
-  # U-Boot system/board name - single k1_defconfig build covers all K1 boards
-    UBOOT_SYSTEM="k1"
-
-  # Kernel to use. values can be:
-  # spacemit: SpacemiT vendor kernel 6.6 (k1-bl-v2.2.y)
-    LINUX="${LINUX:-spacemit}"
-
-  # Kernel image to build (riscv64: arch/riscv/boot/Image)
-    KERNEL_TARGET="Image"
-
-  # Additional kernel make parameters
-    KERNEL_MAKE_EXTRACMD="dtbs"
-
 ################################################################################
 # setup build defaults
 ################################################################################
@@ -58,14 +45,6 @@
 
   # build with installer (yes / no)
     INSTALLER_SUPPORT="no"
-
-  # Boot partition starts at 4MiB - boot chain (bootinfo/FSBL/env/OpenSBI/U-Boot)
-  # occupies the first 4MiB, matching the SpacemiT vendor SD layout
-    SYSTEM_PART_START=8192
-
-  # System partition size (MiB) - only used by the generic mkimage pre-flight
-  # sizing; the Spacemit bootloader/mkimage rebuilds the final GPT layout.
-    SYSTEM_SIZE=512
 
   # additional packages to install
     ADDITIONAL_PACKAGES+=" dtc img-gpu-powervr k1x-vpu-firmware mpp"
