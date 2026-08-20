@@ -238,6 +238,13 @@ EOF
     mcopy -s "${RELEASE_DIR}/3rdparty/bootloader/overlays" :: >"${SAVE_ERROR}" 2>&1 || show_error
   fi
 
+elif [ "${BOOTLOADER}" = "u-boot" -a "${PROJECT}" = "Spacemit" ]; then
+  # SpacemiT K1: fully custom image layout (GPT boot chain + ext4 bootfs).
+  # The project bootloader/mkimage rebuilds the disk image from scratch.
+  if [ -f "${PROJECT_DIR}/${PROJECT}/bootloader/mkimage" ]; then
+    . "${PROJECT_DIR}/${PROJECT}/bootloader/mkimage"
+  fi
+
 elif [ "${BOOTLOADER}" = "u-boot" -a -n "${UBOOT_SYSTEM}" ]; then
   # create bootloader configuration
   echo "image: creating bootloader configuration..."
