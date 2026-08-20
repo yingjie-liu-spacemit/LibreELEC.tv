@@ -1,0 +1,17 @@
+[Unit]
+Description=Enable LCD backlight (unblank pwm-backlight)
+# pwm-backlight probes with bl_power=POWERDOWN when the PWM is not yet
+# running (pwm_backlight_initial_power_state sees pwm disabled). The
+# LT8911EXB eDP bridge panel driver never calls backlight_enable(), so
+# unblank it explicitly at boot.
+DefaultDependencies=no
+After=systemd-udevd.service
+Wants=systemd-udevd.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'echo 0 > /sys/class/backlight/soc:lcd_backlight/bl_power 2>/dev/null || true'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sysinit.target
