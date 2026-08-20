@@ -1,0 +1,12 @@
+--- a/al/vps/k1/v2d/include/asr_v2d_type.h
++++ b/al/vps/k1/v2d/include/asr_v2d_type.h
+@@ -33,6 +33,10 @@
+ typedef unsigned long uint64_t;
+ typedef uint64_t V2D_HANDLE;
++#if __STDC_VERSION__ >= 202311L
++#include <stdbool.h>
++#else
+ typedef int bool;
++#endif
+ 
+ typedef enum asrV2D_INPUT_LAYER_E {

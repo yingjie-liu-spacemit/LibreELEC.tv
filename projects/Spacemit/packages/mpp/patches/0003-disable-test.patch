@@ -1,0 +1,8 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -38,7 +38,7 @@
+ add_subdirectory(mpi)
+ add_subdirectory(al)
+ add_subdirectory(utils)
+-add_subdirectory(test)
++# add_subdirectory(test)  # disabled: test tools not needed for ffmpeg stcodec

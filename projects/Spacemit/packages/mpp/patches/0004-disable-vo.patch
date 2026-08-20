@@ -1,0 +1,8 @@
+--- a/al/CMakeLists.txt
++++ b/al/CMakeLists.txt
+@@ -14,4 +14,4 @@
+ add_subdirectory(vcodec)
+ add_subdirectory(vps)
+ add_subdirectory(vi)
+-add_subdirectory(vo)
++# add_subdirectory(vo)  # disabled: vo_sdl2_plugin needs libSDL2, not needed for ffmpeg stcodec
