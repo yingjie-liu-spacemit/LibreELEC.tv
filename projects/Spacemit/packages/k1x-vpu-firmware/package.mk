@@ -22,8 +22,15 @@ make_target() {
 }
 
 makeinstall_target() {
-  if [ -d "${PKG_BUILD}/lib/firmware" ]; then
+  # GitHub archive extracts to firmware/, buildroot local copy to lib/firmware/
+  local FW_DIR=""
+  if [ -d "${PKG_BUILD}/firmware" ]; then
+    FW_DIR="${PKG_BUILD}/firmware"
+  elif [ -d "${PKG_BUILD}/lib/firmware" ]; then
+    FW_DIR="${PKG_BUILD}/lib/firmware"
+  fi
+  if [ -n "${FW_DIR}" ]; then
     mkdir -p ${INSTALL}/usr/lib/kernel-overlays/base/lib/firmware
-    cp -av ${PKG_BUILD}/lib/firmware/* ${INSTALL}/usr/lib/kernel-overlays/base/lib/firmware/
+    cp -av ${FW_DIR}/* ${INSTALL}/usr/lib/kernel-overlays/base/lib/firmware/
   fi
 }
