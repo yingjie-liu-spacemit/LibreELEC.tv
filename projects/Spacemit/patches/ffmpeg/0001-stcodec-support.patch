@@ -131,7 +131,7 @@ new file mode 100644
 index 0000000..1265fe6
 --- /dev/null
 +++ b/libavcodec/stcodecdec.c
-@@ -0,0 +1,787 @@
+@@ -0,0 +1,820 @@
 +/*
 + * Spacemit MPP Video Decoder
 + * Copyright 2022-2023 SPACEMIT. All rights reserved.
@@ -455,12 +455,14 @@ index 0000000..1265fe6
 +        MPP_FRAME_BUFFERTYPE_NORMAL_INTERNAL;
 +  }
 +  decoder->pVdecCtx->eCodecType = CODEC_V4L2_LINLONV5V7;
-+  if (avctx->width >= 3840 || avctx->height >= 2160) {
-+    av_log(avctx, AV_LOG_ERROR, "4K video, downscale!\n");
-+    decoder->pVdecCtx->stVdecPara.nScale = 2;
-+  } else {
-+    decoder->pVdecCtx->stVdecPara.nScale = 1;
-+  }
++  // NOTE: MPP hardware downscale (nScale=2, 4K->1080p) is broken on the
++  // k1-bl-v2.2.11 firmware: the VPU emits "header parse error" after a few
++  // frames and the output queue never becomes ready (poll deadlock), both
++  // with the per-buffer SCALING flag and with the DSL ratio path. Full
++  // resolution decode (nScale=1) works reliably (verified via mpp_vdec_test:
++  // 4K HEVC 240+ frames). Kodi scales 4K->2K in the renderer (GLES shader
++  // or DRM plane scaling), so decode at full resolution and let Kodi scale.
++  decoder->pVdecCtx->stVdecPara.nScale = 1;
 +  decoder->pVdecCtx->stVdecPara.nHorizonScaleDownRatio = 1;
 +  decoder->pVdecCtx->stVdecPara.nVerticalScaleDownRatio = 1;
 +  decoder->pVdecCtx->stVdecPara.nRotateDegree = 0;
@@ -644,13 +646,30 @@ index 0000000..1265fe6
 +    freeslots = decoder->pVdecPara->nInputQueueLeftNum;
 +    av_log(avctx, AV_LOG_DEBUG, "Input queue left %d seat!!\n", freeslots);
 +
++    // Send ONE packet per receive_frame call (alternating send/recv
++    // rhythm, verified reliable via mpp_vdec_test: send 1-2 packets, poll
++    // output, repeat). Feeding the whole input queue at once deadlocks the
++    // output poll on 4K streams (header parse error / output never ready).
++    // FFmpeg calls receive_frame repeatedly, so one packet per call keeps
++    // the decoder fed without flooding its input queue.
 +    if (freeslots > 0) {
 +      ret = ff_decode_get_packet(avctx, &pkt);
 +      if (ret < 0 && ret != AVERROR_EOF) {
 +        av_log(avctx, AV_LOG_DEBUG,
 +               "Failed to ff_decode_get_packet (ret = %d (%s))\n", ret,
 +               av_err2str(ret));
++        if (ret == AVERROR(EAGAIN)) {
++          // No more input packets right now; still try to retrieve
++          // decoded frames below.
++          goto request_frame;
++        }
 +        goto fail;
++      }
++
++      if (ret == AVERROR_EOF) {
++        // All input packets consumed; try to retrieve the remaining
++        // decoded frames below.
++        goto request_frame;
 +      }
 +
 +      ret = stcodec_send_packet(avctx, &pkt);
@@ -665,14 +684,22 @@ index 0000000..1265fe6
 +    }
 +  }
 +
-+  do {
-+    ret =
-+        VDEC_RequestOutputFrame(decoder->pVdecCtx, FRAME_GetBaseData(mppframe));
-+    if (ret == MPP_CODER_NULL_DATA) {
-+      av_log(avctx, AV_LOG_ERROR, "null data, return\n");
-+      VDEC_ReturnOutputFrame(decoder->pVdecCtx, FRAME_GetBaseData(mppframe));
-+    }
-+  } while (ret == MPP_CODER_NO_DATA || ret == MPP_CODER_NULL_DATA);
++request_frame:
++  // Try to retrieve ONE frame, but never spin waiting for it: if no frame
++  // is ready yet (NO_DATA/NULL_DATA), return EAGAIN so the caller feeds
++  // more packets. This matches the alternating rhythm of mpp_vdec_test.
++  ret =
++      VDEC_RequestOutputFrame(decoder->pVdecCtx, FRAME_GetBaseData(mppframe));
++  if (ret == MPP_CODER_NULL_DATA) {
++    av_log(avctx, AV_LOG_ERROR, "null data, return\n");
++    VDEC_ReturnOutputFrame(decoder->pVdecCtx, FRAME_GetBaseData(mppframe));
++    ret = AVERROR(EAGAIN);
++    goto fail;
++  }
++  if (ret == MPP_CODER_NO_DATA) {
++    ret = AVERROR(EAGAIN);
++    goto fail;
++  }
 +  av_log(avctx, AV_LOG_DEBUG, "Request frame (ret = %d)\n", ret);
 +
 +  if (ret == MPP_CODER_EOS && mppframe == NULL) {
@@ -705,6 +732,12 @@ index 0000000..1265fe6
 +           decoder->pVdecCtx->stVdecPara.nWidth,
 +           decoder->pVdecCtx->stVdecPara.nHeight);
 +
++    // MPP has already reallocated its internal capture buffers to the new
++    // (downscaled) size and updated stVdecPara.nWidth/nHeight (see
++    // al_dec_request_output_frame in linlonv5v7_dec.c). Mirror rkmppdec.c:
++    // update avctx dimensions, rebuild the hwframes ctx, and signal EAGAIN
++    // so the receive_frame loop retries. The placeholder mppframe carries
++    // no picture data; fail: frees the MppFrame struct only (safe).
 +    avctx->width = decoder->pVdecCtx->stVdecPara.nWidth;
 +    avctx->height = decoder->pVdecCtx->stVdecPara.nHeight;
 +
