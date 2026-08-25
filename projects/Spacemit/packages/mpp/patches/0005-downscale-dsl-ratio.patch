@@ -1,0 +1,22 @@
+--- a/al/vcodec/v4l2/linlonv5v7/linlonv5v7_dec.c
++++ b/al/vcodec/v4l2/linlonv5v7/linlonv5v7_dec.c
+@@ -436,6 +436,19 @@
+   setDecoderInterlaced(context, context->bIsInterlaced);
+   setDecoderRotation(context, context->nRotation);
+   setDecoderDownScale(context, context->nScale);
++
++  // Downscale support: the nScale value is only propagated to the kernel
++  // driver via the V4L2 buffer scaling flag at QBUF time, but the driver
++  // computes the capture port dimensions in VIDIOC_S_FMT (which happens
++  // before the first QBUF, when scaling_shift is still 0). Without an
++  // explicit DSL ratio the output port keeps the full input resolution
++  // while the firmware tries to emit downscaled frames -> header parse
++  // error / V4L2_BUF_FLAG_ERROR / output poll never ready (deadlock).
++  // The driver's get_port_format_info() honors dsl_ratio when set, so
++  // tell it the downscale ratio here, before stream() -> S_FMT.
++  if (context->nScale > 1) {
++    setDecoderDSLRatio(context, context->nScale, context->nScale);
++  }
+ 
+   // setformat, allocate buffer, stream on
+   stream(context->stCodec);

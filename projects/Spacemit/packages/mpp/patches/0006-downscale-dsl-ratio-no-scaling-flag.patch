@@ -1,0 +1,20 @@
+--- a/al/vcodec/v4l2/linlonv5v7/linlonv5v7_buffer.c
++++ b/al/vcodec/v4l2/linlonv5v7/linlonv5v7_buffer.c
+@@ -327,7 +327,16 @@
+     return MPP_OK;
+   }
+ 
+-  debug("need to set scale: %d", scale);
++  // The downscale ratio is already communicated to both the kernel driver
++  // and the VPU firmware via VIDIOC_S_MVX_DSL_RATIO (set in al_dec_init for
++  // nScale > 1). Setting the per-buffer V4L2_BUF_FRAME_FLAG_SCALING flag on
++  // top of that makes the firmware reject the queue with:
++  //   "Can not use --down_scale X with --dsl_ratio_hor/ver and
++  //    dsl_frame_width/height at same time."
++  // so skip the SCALING flag and let dsl_ratio drive the downscale.
++  debug("downscale %d handled via dsl_ratio, skip SCALING flag", scale);
++  return MPP_OK;
++
+   switch (scale) {
+     case 2:
+       buf->stBufArr.flags &= ~V4L2_BUF_FRAME_FLAG_SCALING_MASK;
