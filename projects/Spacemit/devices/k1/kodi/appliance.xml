@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<settings version="1">
+  <section id="player">
+    <category id="videoplayer">
+      <group id="3">
+        <setting id="videoplayer.useprimedecoder">
+          <default>true</default>
+        </setting>
+        <setting id="videoplayer.useprimedecoderforhw">
+          <visible>true</visible>
+        </setting>
+        <setting id="videoplayer.useprimerenderer">
+          <!-- GLES renderer (1) instead of Direct-to-Plane (0):
+               K1 DRM driver exposes only one overlay plane, so
+               FindVideoAndGuiPlane() cannot find a video+gui plane
+               pair for YU12+AR24.  GLES path renders via EGL dma-buf
+               import and needs no second plane. -->
+          <default>1</default>
+        </setting>
+      </group>
+    </category>
+    <category id="input">
+      <group id="4">
+        <setting id="input.libinputkeyboardlayout">
+          <visible>true</visible>
+        </setting>
+      </group>
+    </category>
+  </section>
+</settings>
