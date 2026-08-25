@@ -516,6 +516,14 @@ devices = \
       },
     },
   },
+  'Spacemit': {
+    'k1': {
+      'k1': {
+        'dtb': 'k1-x_MUSE-Book.dtb',
+        'config': 'k1_defconfig'
+      },
+    },
+  },
 }
 
 class OptionsAction(argparse.Action):
