@@ -12,7 +12,11 @@ PKG_DEPENDS_UNPACK+=" u-boot"
 
 unpack() {
   mkdir -p ${PKG_BUILD}
-  tar --strip-components=1 -xf ${SOURCES}/u-boot/u-boot-${PKG_VERSION}.tar.bz2 -C ${PKG_BUILD}
+  # the u-boot source archive is .tar.bz2 upstream, but projects may use .tar.gz
+  for archive in ${SOURCES}/u-boot/u-boot-${PKG_VERSION}.tar.{bz2,gz,xz}; do
+    [ -f "${archive}" ] && break
+  done
+  tar --strip-components=1 -xf "${archive}" -C ${PKG_BUILD}
 }
 
 make_host() {

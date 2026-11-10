@@ -13,7 +13,7 @@
 #   1M      : fw_dynamic.itb (OpenSBI)
 #   2M      : u-boot.itb (multi-dtb U-Boot FIT)
 #   4M      : bootfs (ext4) - KERNEL + dtbs + SYSTEM + env_k1-x.txt
-#   260M    : rootfs (ext4) - storage
+#   516M    : rootfs (ext4) - storage
 #
 # This script is sourced from scripts/mkimage (Spacemit branch) and runs with
 # ROOT/SCRIPTS/TARGET_IMG/IMAGE_NAME/RELEASE_DIR etc. exported.
@@ -38,14 +38,17 @@ for f in "${BOOTINFO}" "${FSBL}" "${ENV_BIN}" "${OPENSBI}" "${UBOOT}"; do
   fi
 done
 
-BOOTFS_SIZE=256
+# 512 MiB like SYSTEM_SIZE. With 256 MiB only one update fits: mke2fs -d
+# stores the kernel Image sparse (~8 MiB of zeros), an update writes it in
+# full, and the initramfs wants 5 MiB free after an update.
+BOOTFS_SIZE=512
 ROOTFS_SIZE=1024
 DISK="${TARGET_IMG}/${IMAGE_NAME}.img"
 
 # sizes in sectors
 BOOTFS_SECTORS=$((BOOTFS_SIZE * 1024 * 2))
 ROOTFS_SECTORS=$((ROOTFS_SIZE * 1024 * 2))
-DISK_SECTORS=$(( 260 * 1024 * 2 + BOOTFS_SECTORS + ROOTFS_SECTORS + 2048 ))
+DISK_SECTORS=$(( 4 * 1024 * 2 + BOOTFS_SECTORS + ROOTFS_SECTORS + 2048 ))
 
 echo "spacemit: creating sparse disk image ${DISK} (${DISK_SECTORS} sectors)..."
 dd if=/dev/zero of="${DISK}" bs=512 count=0 seek="${DISK_SECTORS}" conv=fsync
@@ -82,7 +85,7 @@ mkdir -p "${IMG_TMP_MNT}/bootfs"
 # KERNEL -> Image, SYSTEM, md5 checksums, all K1 dtbs, env overlay
 cp -av "${TARGET_IMG}/${BUILD_NAME}.kernel" "${IMG_TMP_MNT}/bootfs/Image"
 cp -av "${TARGET_IMG}/${BUILD_NAME}.system" "${IMG_TMP_MNT}/bootfs/SYSTEM"
-cp -av "${RELEASE_DIR}/target/KERNEL.md5" "${IMG_TMP_MNT}/bootfs/KERNEL.md5"
+cp -av "${RELEASE_DIR}/target/KERNEL.md5" "${IMG_TMP_MNT}/bootfs/Image.md5"
 cp -av "${RELEASE_DIR}/target/SYSTEM.md5" "${IMG_TMP_MNT}/bootfs/SYSTEM.md5"
 cp -av "${RELEASE_DIR}/3rdparty/bootloader/env_k1-x.txt" "${IMG_TMP_MNT}/bootfs/"
 
@@ -105,10 +108,9 @@ sync
 echo "spacemit: building rootfs (storage, ext4)..."
 rm -rf "${IMG_TMP_MNT}/rootfs"
 mkdir -p "${IMG_TMP_MNT}/rootfs"
-# Note: .please_resize_me is not created because the fs-resize script
-# expects partition number 2 (/dev/mmcblkXp2), but the K1 GPT layout
-# uses partition 6 for rootfs. The rootfs is already sized to
-# ROOTFS_SIZE in this mkimage script, so auto-resize is not needed.
+# Grow storage (partition 6) to the full SD card on first boot. fs-resize
+# detects the partition number of /storage, so the K1 GPT layout works too.
+touch "${IMG_TMP_MNT}/rootfs/.please_resize_me"
 ROOTFS_IMG="${IMG_TMP_MNT}/rootfs.ext4"
 mke2fs -F -q -t ext4 -L STORAGE -m 0 -d "${IMG_TMP_MNT}/rootfs" "${ROOTFS_IMG}" ${ROOTFS_SIZE}M
 e2fsck -n "${ROOTFS_IMG}" >/dev/null 2>&1 || true

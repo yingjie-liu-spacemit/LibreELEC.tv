@@ -1,0 +1,26 @@
+From c86f0a94813bdd52609a147b10c9aa8e0023050e Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Bas=20Magr=C3=A9?= <bas@opvolger.net>
+Date: Fri, 6 Nov 2026 17:58:48 +0100
+Subject: [PATCH 3/3] ASoC: spacemit: sspa: add MODULE_DEVICE_TABLE
+
+Without an OF device table udev never loads spacemit-hdmiaudio when the
+driver is built as a module, so the HDMI sound card is missing.
+---
+ sound/soc/spacemit/spacemit-snd-sspa.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/sound/soc/spacemit/spacemit-snd-sspa.c b/sound/soc/spacemit/spacemit-snd-sspa.c
+index 763b0ec..341ef73 100644
+--- a/sound/soc/spacemit/spacemit-snd-sspa.c
++++ b/sound/soc/spacemit/spacemit-snd-sspa.c
+@@ -405,6 +405,7 @@ static const struct of_device_id spacemit_snd_sspa_ids[] = {
+ 	{ .compatible = "spacemit,spacemit-snd-sspa", },
+ 	{ /* sentinel */ }
+ };
++MODULE_DEVICE_TABLE(of, spacemit_snd_sspa_ids);
+ #endif
+ 
+ static struct platform_driver spacemit_snd_sspa_pdrv = {
+-- 
+2.56.0
+

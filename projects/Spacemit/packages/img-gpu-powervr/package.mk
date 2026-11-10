@@ -7,11 +7,16 @@
 # GLES/EGL/Vulkan libraries are provided by the mesa package instead.
 
 PKG_NAME="img-gpu-powervr"
-PKG_VERSION="k1-bl-v2.2.9"
+# Coupled to the other K1 vendor packages: see "Version pinning" in
+# projects/Spacemit/options before changing the version.
+# Must match the kernel release (linux-6.6 21f2edd = k1-bl-v2.2.10-release): the
+# v2.2.11 userspace expects the DMA transfer bridge, which the v2.2.10 kernel lacks.
+PKG_VERSION="k1-bl-v2.2.10-release"
 PKG_ARCH="riscv64"
 PKG_LICENSE="CLOSED"
 PKG_SITE="https://github.com/spacemit-com/img-gpu-powervr"
-PKG_URL="https://github.com/spacemit-com/img-gpu-powervr/archive/k1-bl-v2.2.y.tar.gz"
+PKG_URL="https://github.com/spacemit-com/img-gpu-powervr/archive/${PKG_VERSION}.tar.gz"
+PKG_SHA256="2fe29445d3ccee2781426b55886538b1821f990bd501c4316860a632e99f65d6"
 PKG_DEPENDS_TARGET="toolchain libdrm"
 PKG_LONGDESC="IMG PowerVR GPU userspace runtime and firmware for SpacemiT K1"
 

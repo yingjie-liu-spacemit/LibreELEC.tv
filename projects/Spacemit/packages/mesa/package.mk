@@ -15,7 +15,12 @@ PKG_VERSION="24.3.0"
 PKG_ARCH="riscv64"
 PKG_LICENSE="MIT"
 PKG_SITE="https://github.com/spacemit-com/mesa3d"
-PKG_URL="https://github.com/spacemit-com/mesa3d/archive/k1-bl-v2.2.y.tar.gz"
+# Coupled to the other K1 vendor packages: see "Version pinning" in
+# projects/Spacemit/options before changing the version.
+# Tested k1-bl-v2.2.y commit (newer than the k1-bl-v2.2.10-release tag).
+PKG_COMMIT="5a37ce2f58070017d0b25e7434232dff457dee34"
+PKG_URL="https://github.com/spacemit-com/mesa3d/archive/${PKG_COMMIT}.tar.gz"
+PKG_SHA256="08b4dc62b22ed4dde8d321d468e959e83631003f2cdb74a55464e70b07bce8d5"
 PKG_DEPENDS_HOST="toolchain:host expat:host libdrm:host Mako:host pyyaml:host spirv-tools:host"
 PKG_DEPENDS_TARGET="toolchain expat libdrm Mako:host pyyaml:host img-gpu-powervr"
 PKG_LONGDESC="Mesa with PowerVR (pvr) gallium driver for SpacemiT K1"

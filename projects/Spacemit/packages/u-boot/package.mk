@@ -10,7 +10,12 @@ PKG_VERSION="2022.10"
 PKG_ARCH="riscv64"
 PKG_LICENSE="GPL-2.0-or-later"
 PKG_SITE="https://github.com/spacemit-com/uboot-2022.10"
-PKG_URL="https://github.com/spacemit-com/uboot-2022.10/archive/k1-bl-v2.2.y.tar.gz"
+# Coupled to the other K1 vendor packages: see "Version pinning" in
+# projects/Spacemit/options before changing the version.
+# Tested k1-bl-v2.2.y commit (newer than the k1-bl-v2.2.10-release tag).
+PKG_COMMIT="3b5dc97b7e4909fe434405d222353553b2124b6a"
+PKG_URL="https://github.com/spacemit-com/uboot-2022.10/archive/${PKG_COMMIT}.tar.gz"
+PKG_SHA256="73721a9713bdbc7b06a9161520accfddae6c299aa83f1ad46221ce352a6a6592"
 PKG_DEPENDS_TARGET="toolchain openssl:host pkg-config:host Python3:host swig:host pyelftools:host opensbi"
 PKG_LONGDESC="SpacemiT K1 vendor U-Boot (SPL/FSBL + OpenSBI payload + FIT u-boot.itb)"
 PKG_BUILD_FLAGS="+speed"

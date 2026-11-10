@@ -8,7 +8,7 @@ PKG_SHA256="23526015a6f1550e0541a53fe7acea1b5a11e3697cdf3a3bdc076abc38f6045d"
 PKG_LICENSE="GPL-2.0-or-later"
 PKG_SITE="https://git.kernel.org/pub/scm/utils/dtc/dtc.git/"
 PKG_URL="https://www.kernel.org/pub/software/utils/dtc/dtc-${PKG_VERSION}.tar.xz"
-PKG_DEPENDS_HOST="make:host flex:host ninja:host"
+PKG_DEPENDS_HOST="make:host flex:host meson:host ninja:host"
 PKG_DEPENDS_TARGET="make:host gcc:host ninja:host"
 PKG_LONGDESC="The Device Tree Compiler"
 

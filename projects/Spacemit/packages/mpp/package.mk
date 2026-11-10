@@ -14,8 +14,10 @@ PKG_VERSION="k1-bl-v2.2.11"
 PKG_ARCH="riscv64"
 PKG_LICENSE="BSD-2-Clause"
 PKG_SITE="https://github.com/spacemit-com/mpp"
-PKG_URL="https://github.com/spacemit-com/mpp/archive/k1-bl-v2.2.11.tar.gz"
-PKG_SHA256="acd90b2202eee9ec28e16e93dcea9171cb761b01db4dd29aa502017a3db3fd5c"
+# Coupled to the other K1 vendor packages: see "Version pinning" in
+# projects/Spacemit/options before changing the version.
+PKG_URL="https://github.com/spacemit-com/mpp/archive/k1-bl-v2.2.11-release.tar.gz"
+PKG_SHA256="da83cb81b3ab0bf4a7a91d4fa09e5c7cf42819f52a85d6fd2b96ab39ebf82a08"
 PKG_DEPENDS_TARGET="toolchain libdrm"
 PKG_LONGDESC="SpacemiT Media Process Platform - hardware video codec userspace library"
 

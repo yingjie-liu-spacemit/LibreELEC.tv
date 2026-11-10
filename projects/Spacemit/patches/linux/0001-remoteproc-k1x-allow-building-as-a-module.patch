@@ -1,0 +1,58 @@
+From e6684af8574cf9c3c2aa154246ef466329b57782 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Bas=20Magr=C3=A9?= <bas@opvolger.net>
+Date: Fri, 6 Nov 2026 17:58:48 +0100
+Subject: [PATCH 1/3] remoteproc: k1x: allow building as a module
+
+The driver registers the rpmsg client with module_rpmsg_driver() and the
+platform driver with device_initcall(). Built as a module this gives two
+init functions (redefinition of '__inittest').
+
+Register both from a single init function. There is no module_exit: the
+RCPU and the audio power domain must stay up once booted.
+
+The module is needed because esos.elf may not be shipped as part of the
+kernel, so the remoteproc can only boot after the root filesystem is
+mounted.
+---
+ drivers/remoteproc/spacemit/k1x-rproc.c | 18 ++++++++++++++++--
+ 1 file changed, 16 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/remoteproc/spacemit/k1x-rproc.c b/drivers/remoteproc/spacemit/k1x-rproc.c
+index b6c9131..9019610 100644
+--- a/drivers/remoteproc/spacemit/k1x-rproc.c
++++ b/drivers/remoteproc/spacemit/k1x-rproc.c
+@@ -474,7 +474,6 @@ static struct rpmsg_driver rpmsg_rcpu_pm_client = {
+ 	.remove		= rpmsg_rcpu_pwr_manage_romove,
+ };
+ 
+-module_rpmsg_driver(rpmsg_rcpu_pm_client);
+ 
+ #define RCPU_ENTER_LOW_PWR_MODE		"$"
+ 
+@@ -967,7 +966,22 @@ static struct platform_driver spacemit_rproc_driver = {
+ 
+ static __init int spacemit_rproc_driver_init(void)
+ {
+-	return platform_driver_register(&spacemit_rproc_driver);
++	int ret;
++
++	/*
++	 * Register the rpmsg client here instead of via module_rpmsg_driver(),
++	 * so the driver has a single init function and can be built as a module.
++	 * No module_exit: the RCPU/audio domain must stay up once booted.
++	 */
++	ret = register_rpmsg_driver(&rpmsg_rcpu_pm_client);
++	if (ret)
++		return ret;
++
++	ret = platform_driver_register(&spacemit_rproc_driver);
++	if (ret)
++		unregister_rpmsg_driver(&rpmsg_rcpu_pm_client);
++
++	return ret;
+ }
+ device_initcall(spacemit_rproc_driver_init);
+ 
+-- 
+2.56.0
+

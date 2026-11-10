@@ -46,8 +46,16 @@
   # build with installer (yes / no)
     INSTALLER_SUPPORT="no"
 
+  # Version pinning: the SpacemiT K1 vendor components (kernel, img-gpu-powervr,
+  # mesa, opensbi, u-boot, k1x-vpu-firmware, mpp, esos-firmware) are released
+  # together as k1-bl-v2.2.x and are tightly coupled, e.g. the GPU userspace must
+  # match the bridges of the kernel pvr driver. Never point a package at the
+  # moving k1-bl-v2.2.y branch or bump one on its own: versions drift apart and
+  # things silently break (e.g. Kodi falls back to software rendering). Update
+  # them together and re-test on hardware.
+
   # additional packages to install
-    ADDITIONAL_PACKAGES+=" dtc img-gpu-powervr k1x-vpu-firmware mpp"
+    ADDITIONAL_PACKAGES+=" dtc img-gpu-powervr k1x-vpu-firmware esos-firmware mpp"
 
   # PulseAudio crashes on RISC-V (NULL deref in libpulsecommon-17.0.so),
   # disable it and use ALSA only for audio.

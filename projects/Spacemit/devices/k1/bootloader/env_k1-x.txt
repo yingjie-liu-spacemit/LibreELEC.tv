@@ -20,7 +20,8 @@ set_console=if test "${console}" != "";then setenv bootargs "${bootargs}" consol
 add_bootarg=run set_console
 
 // mmc (SD/eMMC) boot args: add boot= so the LibreELEC initramfs can find SYSTEM
-set_mmc_args=setenv bootargs "${bootargs}" rootwait rootfstype=ext4 boot=/dev/mmcblk${boot_devnum}p${bootfs_part}
+// BOOT_IMAGE= tells the initramfs the kernel file name, needed to install updates
+set_mmc_args=setenv bootargs "${bootargs}" rootwait rootfstype=ext4 boot=/dev/mmcblk${boot_devnum}p${bootfs_part} BOOT_IMAGE=/${knl_name}
 
 // rootfs partition (name "rootfs") - used as LibreELEC /storage
 set_root_arg=run get_rootfs_uuid; setenv bootargs "${bootargs}" root=UUID=${rootfs_uuid} disk=UUID=${rootfs_uuid};

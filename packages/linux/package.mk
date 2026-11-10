@@ -38,6 +38,8 @@ case "${LINUX}" in
     ;;
   spacemit)
     # SpacemiT K1 vendor BSP kernel 6.6 (k1-bl-v2.2.y)
+    # = k1-bl-v2.2.10-release; coupled to the K1 vendor packages, see
+    # "Version pinning" in projects/Spacemit/options.
     PKG_VERSION="21f2edd50954020f22954d3be8b9202120ae1ae4"
     PKG_URL="https://github.com/spacemit-com/linux-6.6/archive/${PKG_VERSION}.tar.gz"
     PKG_SOURCE_NAME="linux-${LINUX}-${PKG_VERSION}.tar.gz"

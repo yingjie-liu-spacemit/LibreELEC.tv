@@ -1,0 +1,60 @@
+From dbc0ad196fad1a3f471411267d17fdfc4975d0aa Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Bas=20Magr=C3=A9?= <bas@opvolger.net>
+Date: Fri, 6 Nov 2026 17:58:48 +0100
+Subject: [PATCH 2/3] remoteproc: k1x: avoid unexported symbols in module build
+
+Built as a module, modpost fails on frozen(), sched_setscheduler() and
+rproc_find_carveout_by_name(), which are not exported.
+
+- use sched_set_fifo_low() instead of sched_setscheduler(): the original
+  call asked for SCHED_FIFO with priority 0, which is invalid and failed
+  silently anyway
+- test TASK_FROZEN directly instead of calling frozen()
+- export rproc_find_carveout_by_name()
+---
+ drivers/remoteproc/remoteproc_core.c    | 1 +
+ drivers/remoteproc/spacemit/k1x-rproc.c | 7 ++++---
+ 2 files changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/remoteproc/remoteproc_core.c b/drivers/remoteproc/remoteproc_core.c
+index 695cce2..08e4af8 100644
+--- a/drivers/remoteproc/remoteproc_core.c
++++ b/drivers/remoteproc/remoteproc_core.c
+@@ -272,6 +272,7 @@ rproc_find_carveout_by_name(struct rproc *rproc, const char *name, ...)
+ 
+ 	return mem;
+ }
++EXPORT_SYMBOL_GPL(rproc_find_carveout_by_name);
+ 
+ /**
+  * rproc_check_carveout_da() - Check specified carveout da configuration
+diff --git a/drivers/remoteproc/spacemit/k1x-rproc.c b/drivers/remoteproc/spacemit/k1x-rproc.c
+index 9019610..b09e321 100644
+--- a/drivers/remoteproc/spacemit/k1x-rproc.c
++++ b/drivers/remoteproc/spacemit/k1x-rproc.c
+@@ -367,10 +367,11 @@ static int __process_theread(void *arg)
+ 	struct mbox_client *cl = arg;
+ 	struct rproc *rproc = dev_get_drvdata(cl->dev);
+ 	struct spacemit_mbox *mb = container_of(cl, struct spacemit_mbox, client);
+-	struct sched_param param = {.sched_priority = 0 };
+ 
+ 	mb->kthread_running = true;
+-	ret = sched_setscheduler(current, SCHED_FIFO, &param);
++	/* sched_setscheduler() is not exported to modules */
++	sched_set_fifo_low(current);
++	ret = 0;
+ 	set_freezable();
+ 
+ 	do {
+@@ -944,7 +945,7 @@ static void spacemit_rproc_shutdown(struct platform_device *pdev)
+ 	for (i = 0; i < MAX_MBOX; ++i) {
+ 		/* release the resource of rt thread */
+ 		if (priv->mb[i].kthread_running) {
+-			if (!frozen((priv->mb[i].mb_thread)))
++			if (!(READ_ONCE(priv->mb[i].mb_thread->__state) & TASK_FROZEN))
+ 				kthread_stop(priv->mb[i].mb_thread);
+ 		}
+ 		/* mbox_free_channel(priv->mb[i].chan); */
+-- 
+2.56.0
+

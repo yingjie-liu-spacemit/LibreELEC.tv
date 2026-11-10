@@ -32,18 +32,14 @@ if [ -e /storage/.please_resize_me ] ; then
   fi
 
   # get the disk. /storage on 2nd partition
+  # (not on every layout, e.g. SpacemiT K1 uses partition 6: look the number up)
   echo $(grep "/storage " /proc/mounts) >>$LOG
-  PART=$(grep "/storage " /proc/mounts | cut -d" " -f1 | grep '2$')
-
-  # get disk: /dev/sdx2 -> /dev/sdx, /dev/mmcblkxp2 -> /dev/mmcblkx
-  case $PART in
-    "/dev/mmcblk"*|"/dev/nvme"*)
-      DISK=$(echo $PART | sed s/p2$//g)
-      ;;
-    *)
-      DISK=$(echo $PART | sed s/2$//g)
-      ;;
-  esac
+  PART=$(grep "/storage " /proc/mounts | cut -d" " -f1)
+  PARTNAME="${PART##*/}"
+  PARTNUM=$(cat "/sys/class/block/${PARTNAME}/partition" 2>/dev/null)
+  DISK=$(readlink -f "/sys/class/block/${PARTNAME}/..")
+  DISK="/dev/${DISK##*/}"
+  [ -n "${PARTNUM}" -a -b "${DISK}" ] || PART=""
 
   rm -f /storage/.please_resize_me
   sync
@@ -51,7 +47,7 @@ if [ -e /storage/.please_resize_me ] ; then
   LABEL=$(blkid -o value -s LABEL $PART)
   UUID=$(blkid -o value -s UUID $PART)
 
-  echo "DISK: $DISK  PART: $PART  LABEL: $LABEL  UUID: $UUID" >>$LOG
+  echo "DISK: $DISK  PART: $PART (${PARTNUM})  LABEL: $LABEL  UUID: $UUID" >>$LOG
 
   # just in case
   if [ ! -z "$DISK" -a ! -z "$PART" -a ! -z "$UUID" ] ; then
@@ -62,7 +58,7 @@ if [ -e /storage/.please_resize_me ] ; then
     echo "Please do not reboot or turn off your @DISTRONAME@ device!"
     echo ""
 
-    StartProgressLog spinner "Resizing partition...   " "parted -s -f -m $DISK resizepart 2 100% >>$LOG 2>&1"
+    StartProgressLog spinner "Resizing partition...   " "parted -s -f -m $DISK resizepart ${PARTNUM} 100% >>$LOG 2>&1"
     StartProgressLog spinner "Creating file system... " "mke2fs -F -q -t ext4 -m 0 -L \"$LABEL\" -U \"$UUID\" $PART >>$LOG 2>&1"
     StartProgressLog spinner "Checking file system... " "e2fsck -f -p $PART >>$LOG 2>&1"
     StartProgress countdown "Rebooting in 15s...     " 15 "NOW"

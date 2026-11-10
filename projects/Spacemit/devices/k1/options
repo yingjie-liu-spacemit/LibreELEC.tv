@@ -12,6 +12,10 @@
   # Kernel image to build (riscv64: arch/riscv/boot/Image)
     KERNEL_TARGET="Image"
 
+  # Kernel file name on bootfs (U-Boot loads "Image", see env_k1-x.txt knl_name);
+  # the initramfs uses it to install KERNEL from an update .tar
+    KERNEL_NAME="Image"
+
   # Additional kernel make parameters
     KERNEL_MAKE_EXTRACMD="dtbs"
 
